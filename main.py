@@ -1,47 +1,52 @@
 import telebot
 import requests
+import os
+from flask import Flask
+from threading import Thread
 
 BOT_TOKEN = "8719936624:AAHhCZPc8VCp29s8dtDZQIY0PZX1pqjMNI0"
-GEMINI_KEY = "SIZNING_GEMINI_API_KALITINGIZ"
-CHANNEL_ID = "@A_ToolsX" # Kanal manzili
+GEMINI_KEY = "SIZNING_GEMINI_API_KALITINGIZ" # O'zingizning kalitingizni yozing
+CHANNEL_ID = "@A_ToolsX"
 
 bot = telebot.TeleBot(BOT_TOKEN)
+bot.remove_webhook()
 
-# Kanalga obunani tekshirish funksiyasi
-def check_subscription(user_id):
+# 1. Flask serveri (Render portni ko'rishi uchun)
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot ishlayapti!"
+
+def run_server():
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+
+# 2. Obunani tekshirish funksiyasi
+def is_subscribed(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_ID, user_id)
-        if member.status in ['member', 'administrator', 'creator']:
-            return True
-        return False
+        return member.status in ['member', 'administrator', 'creator']
     except:
         return False
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    if check_subscription(message.from_user.id):
-        bot.reply_to(message, "Salom! Men Zehn AI botman. Savollaringizni yozing.")
-    else:
-        bot.reply_to(message, "🚀 To use this bot, you must join our channel: https://t.me/A_ToolsX")
-
+# 3. Asosiy handlerlar
 @bot.message_handler(func=lambda message: True)
-def ask_ai(message):
-    if not check_subscription(message.from_user.id):
-        bot.reply_to(message, "🚀 To use this bot, you must join our channel: https://t.me/A_ToolsX")
+def chat(message):
+    if not is_subscribed(message.from_user.id):
+        bot.reply_to(message, "🚀 Botdan foydalanish uchun kanalga obuna bo‘ling: https://t.me/A_ToolsX")
         return
-
-    # Agar obuna bo'lsa, AI javob beradi
+        
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
         data = {"contents": [{"parts": [{"text": message.text}]}]}
-        response = requests.post(url, json=data)
-        
-        if response.status_code == 200:
-            reply = response.json()['candidates'][0]['content']['parts'][0]['text']
-            bot.reply_to(message, reply)
-        else:
-            bot.reply_to(message, "Xatolik yuz berdi.")
-    except Exception as e:
-        bot.reply_to(message, "Tizimda xatolik.")
+        response = requests.post(url, json=data).json()
+        reply = response['candidates'][0]['content']['parts'][0]['text']
+        bot.reply_to(message, reply)
+    except Exception:
+        bot.reply_to(message, "Kechirasiz, tizimda xatolik yuz berdi.")
 
-bot.infinity_polling()
+# 4. Server va botni birga ishga tushirish
+if __name__ == "__main__":
+    Thread(target=run_server).start()
+    bot.infinity_polling()
+    
