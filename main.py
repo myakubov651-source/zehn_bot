@@ -24,17 +24,12 @@ def run_server():
 # 2. Obunani tekshirish funksiyasi
 def is_subscribed(user_id):
     try:
-        member = bot.get_chat_member(CHANNEL_ID, user_id)
-        return member.status in ['member', 'administrator', 'creator']
     except:
         return False
 
 # 3. Asosiy handlerlar
 @bot.message_handler(func=lambda message: True)
 def chat(message):
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, "🚀 Botdan foydalanish uchun kanalga obuna bo‘ling: https://t.me/A_ToolsX")
-        return
         
     try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
