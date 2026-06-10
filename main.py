@@ -2,36 +2,27 @@ import os
 import telebot
 import google.generativeai as genai
 
-# Render'dan kalitlarni chaqirib olish
+# Render sozlamalaridan kalitlarni o‘qiydi
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 GEMINI_KEY = os.environ.get("GEMINI_KEY")
 
-# Telegram va Gemini sozlamalari
 bot = telebot.TeleBot(BOT_TOKEN)
 genai.configure(api_key=GEMINI_KEY)
 
-# Modelni sozlash (Ensiklopediya kabi javob berishi uchun)
+# Gemini modelini sozlash
 model = genai.GenerativeModel('gemini-pro')
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Assalomu alaykum! Men sizning shaxsiy yordamchingizman. "
-                          "Mendan istalgan narsa haqida so‘rashingiz mumkin: tarix, fan, "
-                          "musiqa olami yoki boshqa har qanday savol!")
+    bot.reply_to(message, "Salom! Men sizning yordamchingizman. Menga istalgan savol (tarix, fan, musiqa) bering, men javob beraman.")
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
-        # Foydalanuvchi xabarini Gemini'ga yuborish
-        # Prompt: "Sen bilimdon yordamchisan" deb belgilaymiz
-        prompt = f"Sen bilimdon yordamchisan. Foydalanuvchining savoliga aniq va tushunarli javob ber: {message.text}"
-        response = model.generate_content(prompt)
-        
+        # Gemini'dan javob olish
+        response = model.generate_content(message.text)
         bot.reply_to(message, response.text)
     except Exception as e:
-        bot.reply_to(message, "Kechirasiz, bu savolga hozir javob bera olmayman. Boshqa savol so‘rab ko‘ring.")
-        print(f"Error: {e}")
+        bot.reply_to(message, "Kechirasiz, javob olishda xatolik yuz berdi. Iltimos, qaytadan urinib ko‘ring.")
 
-if __name__ == "__main__":
-    bot.polling(none_stop=True)
-    
+bot.polling(none_stop=True)
