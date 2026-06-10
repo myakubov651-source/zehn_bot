@@ -20,13 +20,6 @@ def home():
 
 def run_server():
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-
-# 2. Obunani tekshirish funksiyasi
-def is_subscribed(user_id):
-    try:
-    except:
-        return False
-
 # 3. Asosiy handlerlar
 @bot.message_handler(func=lambda message: True)
 def chat(message):
