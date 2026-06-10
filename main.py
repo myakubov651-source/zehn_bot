@@ -1,39 +1,37 @@
-import telebot
-import requests
 import os
-from flask import Flask
-from threading import Thread
+import telebot
+import google.generativeai as genai
 
-BOT_TOKEN = "8719936624:AAHhCZPc8VCp29s8dtDZQIY0PZX1pqjMNI0"
-GEMINI_KEY = "SIZNING_GEMINI_API_KALITINGIZ" # O'zingizning kalitingizni yozing
+# Render'dan kalitlarni chaqirib olish
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+GEMINI_KEY = os.environ.get("GEMINI_KEY")
 
+# Telegram va Gemini sozlamalari
 bot = telebot.TeleBot(BOT_TOKEN)
-bot.remove_webhook()
+genai.configure(api_key=GEMINI_KEY)
 
-# 1. Flask serveri (Render portni ko'rishi uchun)
-app = Flask(__name__)
+# Modelni sozlash (Ensiklopediya kabi javob berishi uchun)
+model = genai.GenerativeModel('gemini-pro')
 
-@app.route('/')
-def home():
-    return "Bot ishlayapti!"
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Assalomu alaykum! Men sizning shaxsiy yordamchingizman. "
+                          "Mendan istalgan narsa haqida so‘rashingiz mumkin: tarix, fan, "
+                          "musiqa olami yoki boshqa har qanday savol!")
 
-def run_server():
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
-# 3. Asosiy handlerlar
 @bot.message_handler(func=lambda message: True)
-def chat(message):
-        
+def handle_message(message):
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
-        data = {"contents": [{"parts": [{"text": message.text}]}]}
-        response = requests.post(url, json=data).json()
-        reply = response['candidates'][0]['content']['parts'][0]['text']
-        bot.reply_to(message, reply)
-    except Exception:
-        bot.reply_to(message, "Kechirasiz, tizimda xatolik yuz berdi.")
+        # Foydalanuvchi xabarini Gemini'ga yuborish
+        # Prompt: "Sen bilimdon yordamchisan" deb belgilaymiz
+        prompt = f"Sen bilimdon yordamchisan. Foydalanuvchining savoliga aniq va tushunarli javob ber: {message.text}"
+        response = model.generate_content(prompt)
+        
+        bot.reply_to(message, response.text)
+    except Exception as e:
+        bot.reply_to(message, "Kechirasiz, bu savolga hozir javob bera olmayman. Boshqa savol so‘rab ko‘ring.")
+        print(f"Error: {e}")
 
-# 4. Server va botni birga ishga tushirish
 if __name__ == "__main__":
-    Thread(target=run_server).start()
-    bot.infinity_polling()
+    bot.polling(none_stop=True)
     
