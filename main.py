@@ -6,7 +6,6 @@ from threading import Thread
 
 BOT_TOKEN = "8719936624:AAHhCZPc8VCp29s8dtDZQIY0PZX1pqjMNI0"
 GEMINI_KEY = "SIZNING_GEMINI_API_KALITINGIZ" # O'zingizning kalitingizni yozing
-CHANNEL_ID = "@A_ToolsX"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 bot.remove_webhook()
